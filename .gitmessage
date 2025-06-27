@@ -1,0 +1,25 @@
+# <type>: <subject> (max 50 chars)
+#
+# <body> - Explain what and why (max 72 chars per line)
+#
+# Types:
+# feat: new feature
+# fix: bug fix
+# docs: documentation changes
+# style: formatting, missing semicolons, etc
+# refactor: code change that neither fixes a bug nor adds a feature
+# perf: performance improvement
+# test: adding missing tests
+# chore: maintain, dependencies, build tools
+# security: security fixes or improvements
+# breaking: breaking changes (use ! after type)
+#
+# Example:
+# feat: add email notification scheduling
+#
+# - Implement cron-based scheduler for email notifications
+# - Add user preference settings for notification timing
+# - Include HTML email templates with meeting summaries
+# - Add database logging for sent notifications
+#
+# Closes #123
