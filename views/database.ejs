@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MrSE - Database View</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .database-section {
+            background: var(--card-bg);
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .database-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .database-table th,
+        .database-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-size: 0.9rem;
+        }
+        .database-table th {
+            background-color: var(--light-bg);
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+        }
+        .database-table tr:hover {
+            background-color: #f5f5f5;
+        }
+        .json-preview {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .expandable {
+            cursor: pointer;
+            color: var(--secondary-color);
+        }
+        .expandable:hover {
+            text-decoration: underline;
+        }
+        .expanded {
+            white-space: pre-wrap;
+            max-width: none;
+            background: #f8f9fa;
+            padding: 5px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+        .tab-container {
+            border-bottom: 2px solid var(--light-bg);
+            margin-bottom: 20px;
+        }
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-size: 1rem;
+        }
+        .tab-button.active {
+            border-bottom-color: var(--secondary-color);
+            color: var(--secondary-color);
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .status-badge {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .status-confirmed { background: #d4edda; color: #155724; }
+        .status-tentative { background: #fff3cd; color: #856404; }
+        .status-cancelled { background: #f8d7da; color: #721c24; }
+        .meeting-internal { background: var(--secondary-color); color: white; }
+        .meeting-external { background: var(--warning-color); color: white; }
+        .meeting-customer { background: var(--success-color); color: white; }
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: var(--light-bg);
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .summary-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1>MrSE Database View</h1>
+            <div class="nav-links">
+                <span class="user-email"><%= userEmail %></span>
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="/dashboard/settings" class="nav-link">Settings</a>
+                <a href="/auth/logout" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="summary-stats">
+            <div class="summary-card">
+                <div class="summary-number"><%= events.length %></div>
+                <div>Total Events</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number"><%= events.filter(e => e.meeting_type === 'internal').length %></div>
+                <div>Internal Meetings</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number"><%= events.filter(e => e.meeting_type === 'external').length %></div>
+                <div>External Meetings</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number"><%= events.filter(e => e.is_customer_meeting).length %></div>
+                <div>Customer Meetings</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number"><%= events.filter(e => e.is_recurring).length %></div>
+                <div>Recurring Events</div>
+            </div>
+        </div>
+
+        <div class="tab-container">
+            <button class="tab-button active" onclick="showTab('events')">Calendar Events</button>
+            <button class="tab-button" onclick="showTab('changes')">Event Changes</button>
+            <button class="tab-button" onclick="showTab('auth')">Authentication</button>
+            <button class="tab-button" onclick="showTab('preferences')">Preferences</button>
+            <button class="tab-button" onclick="showTab('notifications')">Notifications</button>
+        </div>
+
+        <!-- Calendar Events Tab -->
+        <div id="events-tab" class="tab-content active">
+            <div class="database-section">
+                <h2>Calendar Events (Last Sync: <%= events.length > 0 ? new Date(events[0].last_synced_at).toLocaleString() : 'Never' %>)</h2>
+                <% if (events.length > 0) { %>
+                    <table class="database-table">
+                        <thead>
+                            <tr>
+                                <th>Summary</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Attendees</th>
+                                <th>Location</th>
+                                <th>Recurring</th>
+                                <th>Google ID</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% events.forEach(event => { %>
+                                <tr>
+                                    <td>
+                                        <strong><%= event.summary %></strong>
+                                        <% if (event.description) { %>
+                                            <br><small style="color: #666;"><%= event.description.substring(0, 100) %><%= event.description.length > 100 ? '...' : '' %></small>
+                                        <% } %>
+                                    </td>
+                                    <td><%= new Date(event.start_time).toLocaleString() %></td>
+                                    <td><%= new Date(event.end_time).toLocaleString() %></td>
+                                    <td>
+                                        <span class="status-badge meeting-<%= event.meeting_type %>">
+                                            <%= event.meeting_type %>
+                                        </span>
+                                        <% if (event.is_customer_meeting) { %>
+                                            <br><span class="status-badge meeting-customer">Customer</span>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-<%= event.status || 'confirmed' %>">
+                                            <%= event.status || 'confirmed' %>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <% 
+                                        let attendeeCount = 0;
+                                        let attendeeList = [];
+                                        try {
+                                            if (event.attendees) {
+                                                const parsed = JSON.parse(event.attendees);
+                                                attendeeCount = Array.isArray(parsed) ? parsed.length : 0;
+                                                attendeeList = parsed;
+                                            }
+                                        } catch (e) {
+                                            attendeeCount = 0;
+                                        }
+                                        %>
+                                        <%= attendeeCount %> attendees
+                                        <% if (attendeeCount > 0) { %>
+                                            <div class="json-preview expandable" onclick="toggleExpand(this)">
+                                                <%= attendeeList.slice(0, 2).map(a => a.email).join(', ') %><%= attendeeCount > 2 ? '...' : '' %>
+                                            </div>
+                                        <% } %>
+                                    </td>
+                                    <td><%= event.location || '-' %></td>
+                                    <td><%= event.is_recurring ? '🔄 Yes' : 'No' %></td>
+                                    <td><small><%= event.google_event_id %></small></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                <% } else { %>
+                    <p>No events found. Try syncing your calendar first.</p>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Event Changes Tab -->
+        <div id="changes-tab" class="tab-content">
+            <div class="database-section">
+                <h2>Event Change History</h2>
+                <% if (changes.length > 0) { %>
+                    <table class="database-table">
+                        <thead>
+                            <tr>
+                                <th>Event</th>
+                                <th>Change Type</th>
+                                <th>Changed At</th>
+                                <th>Google Event ID</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% changes.forEach(change => { %>
+                                <tr>
+                                    <td><%= change.summary || 'Unknown Event' %></td>
+                                    <td>
+                                        <span class="status-badge <%= change.change_type === 'created' ? 'status-confirmed' : change.change_type === 'updated' ? 'status-tentative' : 'status-cancelled' %>">
+                                            <%= change.change_type %>
+                                        </span>
+                                    </td>
+                                    <td><%= new Date(change.changed_at).toLocaleString() %></td>
+                                    <td><small><%= change.google_event_id %></small></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                <% } else { %>
+                    <p>No change history found.</p>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Authentication Tab -->
+        <div id="auth-tab" class="tab-content">
+            <div class="database-section">
+                <h2>OAuth Authentication Status</h2>
+                <% if (token) { %>
+                    <table class="database-table">
+                        <tr>
+                            <th>Email</th>
+                            <td><%= token.user_email %></td>
+                        </tr>
+                        <tr>
+                            <th>Token Type</th>
+                            <td><%= token.token_type %></td>
+                        </tr>
+                        <tr>
+                            <th>Token Expires</th>
+                            <td>
+                                <%= new Date(token.expiry_date).toLocaleString() %>
+                                <% if (new Date(token.expiry_date) < new Date()) { %>
+                                    <span class="status-badge status-cancelled">EXPIRED</span>
+                                <% } else { %>
+                                    <span class="status-badge status-confirmed">VALID</span>
+                                <% } %>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Created</th>
+                            <td><%= new Date(token.created_at).toLocaleString() %></td>
+                        </tr>
+                        <tr>
+                            <th>Last Updated</th>
+                            <td><%= new Date(token.updated_at).toLocaleString() %></td>
+                        </tr>
+                    </table>
+                <% } else { %>
+                    <p>No authentication token found. Please log in again.</p>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Preferences Tab -->
+        <div id="preferences-tab" class="tab-content">
+            <div class="database-section">
+                <h2>User Preferences</h2>
+                <% if (preferences) { %>
+                    <table class="database-table">
+                        <tr>
+                            <th>Email</th>
+                            <td><%= preferences.user_email %></td>
+                        </tr>
+                        <tr>
+                            <th>Notifications Enabled</th>
+                            <td>
+                                <span class="status-badge <%= preferences.notification_enabled ? 'status-confirmed' : 'status-cancelled' %>">
+                                    <%= preferences.notification_enabled ? 'YES' : 'NO' %>
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Notification Schedule</th>
+                            <td><code><%= preferences.notification_schedule %></code></td>
+                        </tr>
+                        <tr>
+                            <th>Advance Notice</th>
+                            <td><%= preferences.advance_notice_hours %> hours</td>
+                        </tr>
+                        <tr>
+                            <th>Include Internal Meetings</th>
+                            <td><%= preferences.include_internal_meetings ? 'Yes' : 'No' %></td>
+                        </tr>
+                        <tr>
+                            <th>Include External Meetings</th>
+                            <td><%= preferences.include_external_meetings ? 'Yes' : 'No' %></td>
+                        </tr>
+                        <tr>
+                            <th>Created</th>
+                            <td><%= new Date(preferences.created_at).toLocaleString() %></td>
+                        </tr>
+                        <tr>
+                            <th>Last Updated</th>
+                            <td><%= new Date(preferences.updated_at).toLocaleString() %></td>
+                        </tr>
+                    </table>
+                <% } else { %>
+                    <p>No preferences found. Default settings are being used.</p>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Notifications Tab -->
+        <div id="notifications-tab" class="tab-content">
+            <div class="database-section">
+                <h2>Notification History</h2>
+                <% if (notifications.length > 0) { %>
+                    <table class="database-table">
+                        <thead>
+                            <tr>
+                                <th>Sent At</th>
+                                <th>Status</th>
+                                <th>Events Included</th>
+                                <th>Error Message</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% notifications.forEach(notification => { %>
+                                <tr>
+                                    <td><%= new Date(notification.sent_at).toLocaleString() %></td>
+                                    <td>
+                                        <span class="status-badge <%= notification.status === 'sent' ? 'status-confirmed' : notification.status === 'failed' ? 'status-cancelled' : 'status-tentative' %>">
+                                            <%= notification.status %>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <% try { %>
+                                            <% const events = JSON.parse(notification.events_included || '[]'); %>
+                                            <%= events.length %> events
+                                            <% if (events.length > 0) { %>
+                                                <div class="json-preview expandable" onclick="toggleExpand(this)">
+                                                    <%= events.slice(0, 2).map(e => e.summary).join(', ') %><%= events.length > 2 ? '...' : '' %>
+                                                </div>
+                                            <% } %>
+                                        <% } catch (e) { %>
+                                            Invalid data
+                                        <% } %>
+                                    </td>
+                                    <td><%= notification.error_message || '-' %></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                <% } else { %>
+                    <p>No notification history found.</p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Mark button as active
+            event.target.classList.add('active');
+        }
+        
+        function toggleExpand(element) {
+            if (element.classList.contains('expanded')) {
+                element.classList.remove('expanded');
+                element.style.whiteSpace = 'nowrap';
+                element.style.maxWidth = '200px';
+            } else {
+                element.classList.add('expanded');
+                element.style.whiteSpace = 'pre-wrap';
+                element.style.maxWidth = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

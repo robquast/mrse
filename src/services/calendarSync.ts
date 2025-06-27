@@ -27,9 +27,13 @@ export async function syncCalendarEvents(userEmail: string) {
   const calendar = google.calendar({ version: 'v3', auth });
 
   try {
+    console.log('🔍 Starting calendar sync for user:', userEmail);
+    
     const now = new Date();
     const threeMonthsFromNow = new Date();
     threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
+
+    console.log('📅 Requesting events from', now.toISOString(), 'to', threeMonthsFromNow.toISOString());
 
     const response = await calendar.events.list({
       calendarId: 'primary',
@@ -39,6 +43,8 @@ export async function syncCalendarEvents(userEmail: string) {
       singleEvents: true,
       orderBy: 'startTime'
     });
+    
+    console.log('✅ Successfully received calendar response');
 
     const events = response.data.items || [];
     
@@ -98,7 +104,7 @@ async function saveOrUpdateEvent(event: calendar_v3.Schema$Event, userEmail: str
     isRecurring,
     event.recurrence?.join('\n'),
     organizerEmail,
-    JSON.stringify(attendees),
+    JSON.stringify(attendees || []), // Ensure we always store a valid array
     meetingType === 'internal',
     meetingType,
     event.status,

@@ -12,6 +12,7 @@
             <h1>MrSE Dashboard</h1>
             <div class="nav-links">
                 <span class="user-email"><%= userEmail %></span>
+                <a href="/dashboard/database" class="nav-link">Database</a>
                 <a href="/dashboard/settings" class="nav-link">Settings</a>
                 <a href="/auth/logout" class="nav-link">Logout</a>
             </div>
@@ -77,9 +78,20 @@
                                 <% if (event.is_recurring) { %>
                                     <span class="recurring">🔄 Recurring</span>
                                 <% } %>
-                                <% if (event.attendees) { %>
+                                <% 
+                                let attendeeCount = 0;
+                                try {
+                                    if (event.attendees && event.attendees !== 'null' && event.attendees !== '') {
+                                        const parsed = JSON.parse(event.attendees);
+                                        attendeeCount = Array.isArray(parsed) ? parsed.length : 0;
+                                    }
+                                } catch (e) {
+                                    attendeeCount = 0;
+                                }
+                                %>
+                                <% if (attendeeCount > 0) { %>
                                     <span class="attendees">
-                                        👥 <%= JSON.parse(event.attendees).length %> attendees
+                                        👥 <%= attendeeCount %> attendees
                                     </span>
                                 <% } %>
                             </div>

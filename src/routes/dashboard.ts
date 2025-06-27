@@ -52,6 +52,8 @@ router.get('/', async (req, res) => {
     const events = eventsResult.rows;
     const preferences = prefsResult.rows[0];
     
+    console.log(`📊 Dashboard loaded for ${userEmail}: ${events.length} events found`);
+    
     res.render('dashboard', {
       userEmail,
       stats,
@@ -102,6 +104,100 @@ router.get('/settings', async (req, res) => {
   } catch (error) {
     console.error('Settings error:', error);
     res.status(500).render('error', { message: 'Failed to load settings' });
+  }
+});
+
+router.get('/database', async (req, res) => {
+  try {
+    const userEmail = req.session.userEmail!;
+    
+    // Get comprehensive database information
+    const eventsQuery = `
+      SELECT 
+        google_event_id,
+        summary,
+        description,
+        location,
+        start_time,
+        end_time,
+        is_all_day,
+        is_recurring,
+        organizer_email,
+        attendees,
+        is_internal,
+        meeting_type,
+        is_customer_meeting,
+        status,
+        created_at,
+        updated_at,
+        last_synced_at
+      FROM calendar_events 
+      WHERE organizer_email = $1 
+      ORDER BY start_time ASC
+    `;
+    
+    const changesQuery = `
+      SELECT 
+        c.google_event_id,
+        c.change_type,
+        c.changed_at,
+        e.summary
+      FROM event_changes c
+      LEFT JOIN calendar_events e ON c.google_event_id = e.google_event_id
+      WHERE e.organizer_email = $1 OR c.google_event_id IN (
+        SELECT google_event_id FROM calendar_events WHERE organizer_email = $1
+      )
+      ORDER BY c.changed_at DESC
+      LIMIT 50
+    `;
+    
+    const tokenQuery = `
+      SELECT 
+        user_email,
+        token_type,
+        expiry_date,
+        created_at,
+        updated_at
+      FROM oauth_tokens 
+      WHERE user_email = $1
+    `;
+    
+    const preferencesQuery = `
+      SELECT * FROM user_preferences WHERE user_email = $1
+    `;
+    
+    const notificationQuery = `
+      SELECT 
+        sent_at,
+        status,
+        error_message,
+        events_included
+      FROM notification_logs 
+      WHERE user_email = $1 
+      ORDER BY sent_at DESC 
+      LIMIT 20
+    `;
+    
+    const [eventsResult, changesResult, tokenResult, prefsResult, notificationResult] = await Promise.all([
+      pool.query(eventsQuery, [userEmail]),
+      pool.query(changesQuery, [userEmail]),
+      pool.query(tokenQuery, [userEmail]),
+      pool.query(preferencesQuery, [userEmail]),
+      pool.query(notificationQuery, [userEmail])
+    ]);
+    
+    res.render('database', {
+      userEmail,
+      events: eventsResult.rows,
+      changes: changesResult.rows,
+      token: tokenResult.rows[0],
+      preferences: prefsResult.rows[0],
+      notifications: notificationResult.rows
+    });
+    
+  } catch (error) {
+    console.error('Database view error:', error);
+    res.status(500).render('error', { message: 'Failed to load database view' });
   }
 });
 
