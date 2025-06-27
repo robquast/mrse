@@ -6,20 +6,33 @@ const router = Router();
 
 
 router.get('/login', (req, res) => {
-  res.render('login');
+  try {
+    console.log('Login page requested');
+    res.render('login');
+  } catch (error) {
+    console.error('Error rendering login page:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 router.get('/google', (req, res) => {
-  const oauth2Client = getOAuth2Client();
-  const authUrl = oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    scope: [
-      'https://www.googleapis.com/auth/calendar.readonly',
-      'https://www.googleapis.com/auth/userinfo.email'
-    ],
-    prompt: 'consent'
-  });
-  res.redirect(authUrl);
+  try {
+    console.log('Google OAuth requested');
+    const oauth2Client = getOAuth2Client();
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: [
+        'https://www.googleapis.com/auth/calendar.readonly',
+        'https://www.googleapis.com/auth/userinfo.email'
+      ],
+      prompt: 'consent'
+    });
+    console.log('Redirecting to:', authUrl);
+    res.redirect(authUrl);
+  } catch (error) {
+    console.error('Error in Google OAuth:', error);
+    res.status(500).send('OAuth setup error');
+  }
 });
 
 router.get('/google/callback', async (req, res) => {

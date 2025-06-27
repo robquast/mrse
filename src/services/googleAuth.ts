@@ -3,11 +3,21 @@ import { OAuth2Client } from 'google-auth-library';
 import pool from '../config/database';
 
 export function getOAuth2Client(): OAuth2Client {
-  return new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-  );
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  
+  console.log('OAuth config check:', {
+    clientId: clientId ? `${clientId.substring(0, 10)}...` : 'MISSING',
+    clientSecret: clientSecret ? 'SET' : 'MISSING',
+    redirectUri: redirectUri || 'MISSING'
+  });
+  
+  if (!clientId || !clientSecret || !redirectUri) {
+    throw new Error('Missing required OAuth environment variables');
+  }
+  
+  return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 }
 
 export async function saveTokens(userEmail: string, tokens: any) {

@@ -83,12 +83,16 @@ async function startServer() {
 
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
-  process.exit(1);
+  console.error('Stack trace:', error.stack);
+  // Don't exit immediately, log and continue
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
+  if (reason instanceof Error) {
+    console.error('Stack trace:', reason.stack);
+  }
+  // Don't exit immediately, log and continue
 });
 
 startServer().catch((error) => {

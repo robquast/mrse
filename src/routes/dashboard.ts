@@ -69,9 +69,23 @@ router.post('/sync', async (req, res) => {
     const userEmail = req.session.userEmail!;
     const count = await syncCalendarEvents(userEmail);
     res.json({ success: true, eventsCount: count });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Sync error:', error);
-    res.status(500).json({ success: false, error: 'Sync failed' });
+    
+    let errorMessage = 'Sync failed';
+    
+    // Handle specific Google API errors
+    if (error.message && error.message.includes('Google Calendar API has not been used')) {
+      errorMessage = 'Google Calendar API is not enabled. Please enable it in Google Cloud Console and try again.';
+    } else if (error.message && error.message.includes('insufficient permissions')) {
+      errorMessage = 'Insufficient permissions. Please re-authorize the application.';
+    } else if (error.code === 403) {
+      errorMessage = 'Permission denied. Check your Google Calendar API settings.';
+    } else if (error.code === 401) {
+      errorMessage = 'Authentication failed. Please log in again.';
+    }
+    
+    res.status(500).json({ success: false, error: errorMessage });
   }
 });
 
