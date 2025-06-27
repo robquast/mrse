@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mrse-app
+  labels:
+    app: mrse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mrse
+  template:
+    metadata:
+      labels:
+        app: mrse
+    spec:
+      containers:
+      - name: mrse
+        image: mrse:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: mrse-secrets
+              key: database-url
+        - name: GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: mrse-secrets
+              key: google-client-id
+        - name: GOOGLE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: mrse-secrets
+              key: google-client-secret
+        - name: SMTP_USER
+          valueFrom:
+            secretKeyRef:
+              name: mrse-secrets
+              key: smtp-user
+        - name: SMTP_PASS
+          valueFrom:
+            secretKeyRef:
+              name: mrse-secrets
+              key: smtp-pass
+        - name: SESSION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: mrse-secrets
+              key: session-secret
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mrse-service
+spec:
+  selector:
+    app: mrse
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: mrse-route
+spec:
+  to:
+    kind: Service
+    name: mrse-service
+  port:
+    targetPort: 3000
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MrSE - Settings</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1>MrSE Settings</h1>
+            <div class="nav-links">
+                <span class="user-email"><%= userEmail %></span>
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="/auth/logout" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="settings-form">
+            <h2>Notification Preferences</h2>
+            
+            <form id="preferencesForm">
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="notificationEnabled" 
+                               <%= preferences.notification_enabled ? 'checked' : '' %>>
+                        Enable Email Notifications
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label for="notificationSchedule">Notification Schedule (Cron Format)</label>
+                    <input type="text" id="notificationSchedule" 
+                           value="<%= preferences.notification_schedule %>"
+                           placeholder="0 8 * * * (Daily at 8 AM)">
+                    <small>Common schedules: 
+                        <a href="#" onclick="setSchedule('0 8 * * *')">Daily 8AM</a> | 
+                        <a href="#" onclick="setSchedule('0 8 * * 1-5')">Weekdays 8AM</a> | 
+                        <a href="#" onclick="setSchedule('0 8,17 * * *')">8AM & 5PM</a>
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="advanceNoticeHours">Advance Notice (hours)</label>
+                    <input type="number" id="advanceNoticeHours" 
+                           value="<%= preferences.advance_notice_hours %>"
+                           min="1" max="168">
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="includeInternalMeetings" 
+                               <%= preferences.include_internal_meetings ? 'checked' : '' %>>
+                        Include Internal Meetings
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="includeExternalMeetings" 
+                               <%= preferences.include_external_meetings ? 'checked' : '' %>>
+                        Include External Meetings
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save Preferences</button>
+            </form>
+        </div>
+
+        <div class="oauth-config">
+            <h2>Google OAuth Configuration</h2>
+            <p>To update your Google OAuth configuration, you'll need to set the following environment variables:</p>
+            <ul>
+                <li><code>GOOGLE_CLIENT_ID</code></li>
+                <li><code>GOOGLE_CLIENT_SECRET</code></li>
+                <li><code>GOOGLE_REDIRECT_URI</code></li>
+            </ul>
+            <p>Current redirect URI: <code><%= process.env.GOOGLE_REDIRECT_URI || 'Not set' %></code></p>
+        </div>
+    </div>
+
+    <script src="/js/settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MrSE - Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1>MrSE Dashboard</h1>
+            <div class="nav-links">
+                <span class="user-email"><%= userEmail %></span>
+                <a href="/dashboard/settings" class="nav-link">Settings</a>
+                <a href="/auth/logout" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Today</h3>
+                <div class="stat-number"><%= stats.today_events %></div>
+                <p>meetings</p>
+            </div>
+            <div class="stat-card">
+                <h3>This Week</h3>
+                <div class="stat-number"><%= stats.week_events %></div>
+                <p>meetings</p>
+            </div>
+            <div class="stat-card">
+                <h3>Internal</h3>
+                <div class="stat-number"><%= stats.internal_meetings %></div>
+                <p>meetings</p>
+            </div>
+            <div class="stat-card">
+                <h3>External</h3>
+                <div class="stat-number"><%= stats.external_meetings %></div>
+                <p>meetings</p>
+            </div>
+            <div class="stat-card">
+                <h3>Customer</h3>
+                <div class="stat-number"><%= stats.customer_meetings %></div>
+                <p>meetings</p>
+            </div>
+            <div class="stat-card">
+                <h3>Recurring</h3>
+                <div class="stat-number"><%= stats.recurring_events %></div>
+                <p>events</p>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button onclick="syncCalendar()" class="btn btn-primary">Sync Calendar Now</button>
+        </div>
+
+        <div class="events-section">
+            <h2>Upcoming Events</h2>
+            <div class="events-list">
+                <% events.forEach(event => { %>
+                    <div class="event-card <%= event.meeting_type %>">
+                        <div class="event-time">
+                            <%= new Date(event.start_time).toLocaleDateString() %> 
+                            <%= new Date(event.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
+                        </div>
+                        <div class="event-details">
+                            <h4><%= event.summary %></h4>
+                            <% if (event.location) { %>
+                                <p class="location">📍 <%= event.location %></p>
+                            <% } %>
+                            <div class="event-meta">
+                                <span class="meeting-type <%= event.meeting_type %>">
+                                    <%= event.meeting_type %>
+                                </span>
+                                <% if (event.is_recurring) { %>
+                                    <span class="recurring">🔄 Recurring</span>
+                                <% } %>
+                                <% if (event.attendees) { %>
+                                    <span class="attendees">
+                                        👥 <%= JSON.parse(event.attendees).length %> attendees
+                                    </span>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/dashboard.js"></script>
+</body>
+</html>
